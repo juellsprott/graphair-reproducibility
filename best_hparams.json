@@ -1,0 +1,179 @@
+{
+    "nba": {
+        "graphair": {
+            "hyperparameters": {
+                "alpha": 0.1,
+                "beta": 1.0,
+                "gamma": 10.0,
+                "lam": 10.0,
+                "lr": 0.001,
+                "model_lr": 0.0001,
+                "hidden": 128,
+                "dataset": "nba",
+                "model": "graphair",
+                "epochs": 500
+            }
+        }
+    },
+    "pokec_n": {
+        "graphair": {
+            "hyperparameters": {
+                "alpha": 0.1,
+                "beta": 1.0,
+                "gamma": 10.0,
+                "lam": 0.1,
+                "lr": 0.001,
+                "model_lr": 0.0001,
+                "hidden": 128,
+                "dataset": "pokec_n",
+                "model": "graphair",
+                "epochs": 10000
+            }
+        }
+    },
+    "pokec_z": {
+        "graphair": {
+            "hyperparameters": {
+                "alpha": 0.1,
+                "beta": 1.0,
+                "gamma": 1.0,
+                "lam": 0.1,
+                "lr": 0.001,
+                "model_lr": 0.0001,
+                "hidden": 128,
+                "dataset": "pokec_z",
+                "model": "graphair",
+                "epochs": 10000
+            }
+        }
+    },
+    "citeseer": {
+        "lpgraphair": {
+            "hyperparameters": {
+                "alpha": 10.0,
+                "beta": 1.0,
+                "gamma": 0.1,
+                "lam": 0.1,
+                "lr": 0.01,
+                "model_lr": 0.001,
+                "hidden": 128,
+                "dataset": "citeseer",
+                "model": "lpgraphair",
+                "epochs": 200
+            }
+        },
+        "fairadj": {
+            "hyperparameters": {
+                "model_lr": 0.01,
+                "hidden1": 32,
+                "hidden2": 16,
+                "dropout": 0.0,
+                "outer_epochs": 4,
+                "eta": 0.2,
+                "T1": 50,
+                "T2": 20,
+                "dataset": "pubmed",
+                "model": "fairadj"
+            }
+        },
+        "fairdrop": {
+            "hyperparameters": {
+                "model_lr": 0.001,
+                "hidden_gcn": 128,
+                "hidden_gat": 64,
+                "delta": 0.16,
+                "heads": 1,
+                "model_type": "GCN",
+                "dataset": "citeseer",
+                "model": "fairdrop",
+                "epochs": 500
+            }
+        }
+    },
+    "cora": {
+        "lpgraphair": {
+            "hyperparameters": {
+                "alpha": 10.0,
+                "beta": 1.0,
+                "gamma": 10.0,
+                "lam": 1.0,
+                "lr": 0.01,
+                "model_lr": 0.0001,
+                "hidden": 128,
+                "dataset": "cora",
+                "model": "lpgraphair",
+                "epochs": 200
+            }
+        },
+        "fairadj": {
+            "hyperparameters": {
+                "model_lr": 0.01,
+                "hidden1": 32,
+                "hidden2": 16,
+                "dropout": 0.0,
+                "outer_epochs": 4,
+                "eta": 0.2,
+                "T1": 50,
+                "T2": 20,
+                "dataset": "pubmed",
+                "model": "fairadj"
+            }
+        },
+        "fairdrop": {
+            "hyperparameters": {
+                "model_lr": 0.001,
+                "hidden_gcn": 256,
+                "hidden_gat": 64,
+                "delta": 0.16,
+                "heads": 1,
+                "model_type": "GCN",
+                "dataset": "citeseer",
+                "model": "fairdrop",
+                "epochs": 500
+            }
+        }
+    },
+    "pubmed": {
+        "lpgraphair": {
+            "hyperparameters": {
+                "alpha": 10.0,
+                "beta": 1.0,
+                "gamma": 1.0,
+                "lam": 10.0,
+                "lr": 0.01,
+                "model_lr": 0.0001,
+                "hidden": 64,
+                "dataset": "pubmed",
+                "model": "lpgraphair",
+                "epochs": 200
+            }
+        },
+        "fairadj": {
+            "hyperparameters": {
+                "model_lr": 0.01,
+                "hidden1": 32,
+                "hidden2": 16,
+                "dropout": 0.0,
+                "outer_epochs": 4,
+                "eta": 0.2,
+                "T1": 50,
+                "T2": 20,
+                "dataset": "pubmed",
+                "model": "fairadj"
+            }
+        },
+        "fairdrop": {
+            "hyperparameters": {
+                "model_lr": 0.01,
+                "hidden_gcn": 128,
+                "hidden_gat": 64,
+                "delta": 0.16,
+                "heads": 1,
+                "model_type": "GCN",
+                "dataset": "citeseer",
+                "model": "fairdrop",
+                "epochs": 500
+            }
+        }
+    }
+}
