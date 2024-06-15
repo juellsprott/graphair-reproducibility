@@ -72,7 +72,7 @@
                 "eta": 0.2,
                 "T1": 50,
                 "T2": 20,
-                "dataset": "pubmed",
+                "dataset": "citeseer",
                 "model": "fairadj"
             }
         },
@@ -115,7 +115,7 @@
                 "eta": 0.2,
                 "T1": 50,
                 "T2": 20,
-                "dataset": "pubmed",
+                "dataset": "cora",
                 "model": "fairadj"
             }
         },
@@ -127,7 +127,7 @@
                 "delta": 0.16,
                 "heads": 1,
                 "model_type": "GCN",
-                "dataset": "citeseer",
+                "dataset": "cora",
                 "model": "fairdrop",
                 "epochs": 500
             }
@@ -170,7 +170,7 @@
                 "delta": 0.16,
                 "heads": 1,
                 "model_type": "GCN",
-                "dataset": "citeseer",
+                "dataset": "pubmed",
                 "model": "fairdrop",
                 "epochs": 500
             }

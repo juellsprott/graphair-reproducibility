@@ -180,7 +180,7 @@ def get_best_params(dataset):
     with open("best_hparams.json", "r", encoding="utf-8") as f:
         data = json.load(f)
     if dataset in data:
-        return data[dataset]["hyperparameters"]
+        return data[dataset]
     else:
         return None
 

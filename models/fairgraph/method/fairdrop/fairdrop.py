@@ -69,7 +69,7 @@ class fairdrop:
         self.test_seeds = test_seeds
         self.device = device
         self.model_type = config.model_type
-        self.gat_heads = config.gat_heads
+        self.gat_heads = config.heads
         self.logger = logger
 
         self.dataset = self.load_dataset()

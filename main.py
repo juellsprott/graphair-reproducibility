@@ -53,12 +53,15 @@ class FairGNN:
         if args.use_best_params:
             best_hparams = get_best_params(args.dataset)
             if best_hparams:
-                for param, value in best_hparams[self.model].items():
+                for param, value in best_hparams[self.model]['hyperparameters'].items():
+                    if not isinstance(value, list):
+                        value = [value]
+                    print(f'Updating hyperparameter {param} with value {value}')
                     hparams[param] = {'values': list(value)}
 
         return hparams
 
-    def run_gnn(self, config):
+    def run_gnn(self, config=None):
         with wandb.init(
             config=config,
             name=f'{self.model}-{self.args.dataset}-{time.strftime("%Y%m%d%H%M")}',

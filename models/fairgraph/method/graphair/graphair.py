@@ -47,6 +47,7 @@ class graphair(nn.Module):
         self.aug_model, self.f_encoder, self.sens_model, self.classifier = self.init_modules(dataset, config, device)
         self.dataset = dataset
         self.logger = logger
+        self.config = config
 
         self.alpha = config.alpha
         self.beta = config.beta
@@ -76,8 +77,8 @@ class graphair(nn.Module):
             self.f_encoder.parameters(), lr=config.model_lr, weight_decay=config.wd
         )
         
-        num_hidden=64,
-        num_proj_hidden=64,
+        num_hidden=64
+        num_proj_hidden=64
         self.fc1 = torch.nn.Linear(num_hidden, num_proj_hidden)
         self.fc2 = torch.nn.Linear(num_proj_hidden, num_hidden)
 
@@ -161,7 +162,7 @@ class graphair(nn.Module):
                 adj = self.dataset.adj,
                 x = self.dataset.features,
                 sens = self.dataset.sens,
-                idx_sens = self.dataset.idx_sens,
+                idx_sens = self.dataset.idx_sens_train,
                 warmup=50,
                 adv_epoches=1,
             )
@@ -171,7 +172,7 @@ class graphair(nn.Module):
                 adj = self.dataset.adj,
                 x = self.dataset.features,
                 sens = self.dataset.sens,
-                idx_sens = self.dataset.idx_sens,
+                idx_sens = self.dataset.idx_sens_train,
                 warmup=50,
                 adv_epoches=1,
             )
@@ -279,15 +280,15 @@ class graphair(nn.Module):
                 }
             )
 
-            # print(
-            #     "Epoch: {:04d}".format(epoch_counter + 1),
-            #     "sens loss: {:.4f}".format(senloss.item()),
-            #     "contrastive loss: {:.4f}".format(contrastive_loss.item()),
-            #     "edge reconstruction loss: {:.4f}".format(edge_loss.item()),
-            #     "feature reconstruction loss: {:.4f}".format(feat_loss.item()),
-            # )
+            print(
+                "Epoch: {:04d}".format(epoch_counter + 1),
+                "sens loss: {:.4f}".format(senloss.item()),
+                "contrastive loss: {:.4f}".format(contrastive_loss.item()),
+                "edge reconstruction loss: {:.4f}".format(edge_loss.item()),
+                "feature reconstruction loss: {:.4f}".format(feat_loss.item()),
+            )
 
-        save_path = "./checkpoint/model_checkpoints/graphair_{}_alpha{}_beta{}_gamma{}_lambda{}".format(
+        save_path = "./checkpoint/graphair_{}_alpha{}_beta{}_gamma{}_lambda{}".format(
             self.dataset, self.alpha, self.beta, self.gamma, self.lam
         )
         torch.save(self.state_dict(), save_path)
@@ -383,14 +384,6 @@ class graphair(nn.Module):
             for data in miniBatchLoader:
                 data = data.cuda()
 
-                ### generate fair view
-                # edge_index, _ = add_remaining_self_loops(to_undirected(data.edge_index))
-                # sub_adj = normalize_adjacency(to_torch_sparse_tensor(edge_index)).cuda()
-
-                # sub_adj_dense = to_dense_adj(
-                #     edge_index=edge_index, max_num_nodes=data.x.shape[0]
-                # )[0].float()
-
                 sub_adj = normalize_adjacency(
                     to_torch_sparse_tensor(data.edge_index, data.edge_norm),
                     data.deg.float(),
@@ -475,18 +468,27 @@ class graphair(nn.Module):
                     "loss/feature_reconstruction_loss": feat_loss.item(),
                 }
             )
-            # print(
-            #     "Epoch: {:04d}".format(epoch_counter + 1),
-            #     "sens loss: {:.4f}".format(senloss.item()),
-            #     "contrastive loss: {:.4f}".format(contrastive_loss.item()),
-            #     "edge reconstruction loss: {:.4f}".format(edge_loss.item()),
-            #     "feature reconstruction loss: {:.4f}".format(feat_loss.item()),
-            # )
+            print(
+                "Epoch: {:04d}".format(epoch_counter + 1),
+                "sens loss: {:.4f}".format(senloss.item()),
+                "contrastive loss: {:.4f}".format(contrastive_loss.item()),
+                "edge reconstruction loss: {:.4f}".format(edge_loss.item()),
+                "feature reconstruction loss: {:.4f}".format(feat_loss.item()),
+            )
 
-        save_path = "./checkpoint/model_checkpoints/graphair_{}".format(self.dataset)
+        save_path = "./checkpoint/graphair_{}".format(self.dataset)
         torch.save(self.state_dict(), save_path)
 
-    def test(self, adj, features, labels, epochs, idx_train, idx_val, idx_test, sens):
+    def test(self):
+        features = self.dataset.features
+        adj = self.dataset.adj
+        labels = self.dataset.labels
+        epochs = self.config.test_epochs
+        idx_train = self.dataset.idx_train
+        idx_val = self.dataset.idx_val
+        idx_test = self.dataset.idx_test
+        sens = self.dataset.sens
+
         h = self.forward(adj, features)
         h = h.detach()
         acc_list = []
@@ -533,15 +535,15 @@ class graphair(nn.Module):
                             }
                         }
                     )
-                    # print(
-                    #     "Epoch [{}] Test set results:".format(epoch),
-                    #     "acc_test= {:.4f}".format(acc_test.item()),
-                    #     "acc_val: {:.4f}".format(acc_val.item()),
-                    #     "dp_val: {:.4f}".format(parity_val),
-                    #     "dp_test: {:.4f}".format(parity_test),
-                    #     "eo_val: {:.4f}".format(equality_val),
-                    #     "eo_test: {:.4f}".format(equality_test),
-                    # )
+                print(
+                        "Epoch [{}] Test set results:".format(epoch),
+                        "acc_test= {:.4f}".format(acc_test.item()),
+                        "acc_val: {:.4f}".format(acc_val.item()),
+                        "dp_val: {:.4f}".format(parity_val),
+                        "dp_test: {:.4f}".format(parity_test),
+                        "eo_val: {:.4f}".format(equality_val),
+                        "eo_test: {:.4f}".format(equality_test),
+                    )
                 if acc_val > best_acc:
                     best_acc = acc_val
                     best_test = acc_test
@@ -550,16 +552,16 @@ class graphair(nn.Module):
                     best_eo = equality_val
                     best_eo_test = equality_test
 
-            # print("Optimization Finished!")
-            # print(
-            #     "Test results:",
-            #     "acc_test= {:.4f}".format(best_test.item()),
-            #     "acc_val: {:.4f}".format(best_acc.item()),
-            #     "dp_val: {:.4f}".format(best_dp),
-            #     "dp_test: {:.4f}".format(best_dp_test),
-            #     "eo_val: {:.4f}".format(best_eo),
-            #     "eo_test: {:.4f}".format(best_eo_test),
-            # )
+            print("Optimization Finished!")
+            print(
+                "Test results:",
+                "acc_test= {:.4f}".format(best_test.item()),
+                "acc_val: {:.4f}".format(best_acc.item()),
+                "dp_val: {:.4f}".format(best_dp),
+                "dp_test: {:.4f}".format(best_dp_test),
+                "eo_val: {:.4f}".format(best_eo),
+                "eo_test: {:.4f}".format(best_eo_test),
+            )
 
             self.logger.log(
                 {

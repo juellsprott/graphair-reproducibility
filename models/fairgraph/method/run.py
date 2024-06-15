@@ -52,11 +52,6 @@ class run:
         if isinstance(model, torch.nn.Module):
             model.to(device)
 
-        # print all used hyperparameters
-        print("Hyperparameters used: ")
-        for hparam, value in config.items():
-            print(f"{hparam}: {value}")
-
         # train the model
         model.fit()
 

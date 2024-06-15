@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -37,6 +38,7 @@ class graphair(nn.Module):
         self.aug_model, self.f_encoder, self.sens_model, self.classifier = self.init_modules(dataset, config, device)
         self.dataset = dataset
         self.logger = logger
+        self.config = config
 
         self.alpha = config.alpha
         self.beta = config.beta
@@ -80,7 +82,6 @@ class graphair(nn.Module):
         
     def init_modules(self, dataset, config, device):
         features = dataset.features
-        
         aug_model = aug_module(features, n_hidden=config.model_hidden, temperature=1).to(device)
         f_encoder = GCN_Body(
             in_feats=features.shape[1],
@@ -198,7 +199,7 @@ class graphair(nn.Module):
                 adj = self.dataset.adj,
                 x = self.dataset.features,
                 sens = self.dataset.sens,
-                idx_sens = self.dataset.idx_sens,
+                idx_sens = self.dataset.idx_sens_train,
                 warmup=50,
                 adv_epoches=1,
             )
@@ -208,7 +209,7 @@ class graphair(nn.Module):
                 adj = self.dataset.adj,
                 x = self.dataset.features,
                 sens = self.dataset.sens,
-                idx_sens = self.dataset.idx_sens,
+                idx_sens = self.dataset.idx_sens_train,
                 warmup=50,
                 adv_epoches=1,
             )
@@ -223,14 +224,18 @@ class graphair(nn.Module):
         sens_mask = torch.from_numpy(sens_mask)
 
         edge_index, _ = from_scipy_sparse_matrix(adj)
-
+        
+        save_dir = "./checkpoint/{}".format(self.dataset.name)
+        # check if save_dir exists, if not create it
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
         miniBatchLoader = GraphSAINTRandomWalkSampler(
             Data(x=x, edge_index=edge_index, sens = sens, sens_mask = sens_mask, deg = torch.tensor(np.array(adj.sum(1)).flatten())),
                 batch_size = 1000, 
                 walk_length = 3,
                 sample_coverage = 500, 
                 num_workers = 0,
-                save_dir = "./checkpoint/{}".format(self.dataset))
+                save_dir = "./checkpoint/{}".format(self.dataset.name))
 
         def normalize_adjacency(adj, deg):
             # Calculate the degrees
@@ -295,11 +300,11 @@ class graphair(nn.Module):
                 else:
                     sens_epoches = adv_epoches
                     
-                if self.dataset == 'Citeseer':
+                if self.dataset.name == 'Citeseer':
                     nclasses = 6
-                elif self.dataset == 'Cora':
+                elif self.dataset.name == 'Cora':
                     nclasses = 7
-                elif self.dataset == 'PubMed':
+                elif self.dataset.name == 'PubMed':
                     nclasses = 3
                 else:
                     nclasses = 1
@@ -344,8 +349,15 @@ class graphair(nn.Module):
                 "loss/feature_reconstruction_loss": feat_loss.item(),
                 }
             )
+            
+            print('Epoch: {:04d}'.format(epoch_counter+1),
+            'sens loss: {:.4f}'.format(senloss.item()),
+            'contrastive loss: {:.4f}'.format(contrastive_loss.item()),
+            'edge reconstruction loss: {:.4f}'.format(edge_loss.item()),
+            'feature reconstruction loss: {:.4f}'.format(feat_loss.item()),
+            )
 
-        self.save_path = "./checkpoint/graphair_{}".format(self.dataset)
+        self.save_path = "./checkpoint/graphair_{}".format(self.dataset.name)
         torch.save(self.state_dict(),self.save_path)
         
     def fit_whole(self, epochs, adj, x,sens,idx_sens,warmup=None, adv_epoches=1):
@@ -401,7 +413,6 @@ class graphair(nn.Module):
             for _ in range(sens_epoches):
                 s_pred , _  = self.sens_model(adj_aug_nograd, x_aug_nograd)
                 
-                
                 senloss = self.criterion_sens(s_pred[idx_sens],sens[idx_sens].long())
                 
                 self.optimizer_s.zero_grad()
@@ -433,12 +444,28 @@ class graphair(nn.Module):
                 "loss/feature_reconstruction_loss": feat_loss.item(),
                 }
             )
+            
+            print('Epoch: {:04d}'.format(epoch_counter+1),
+            'sens loss: {:.4f}'.format(senloss.item()),
+            'contrastive loss: {:.4f}'.format(contrastive_loss.item()),
+            'edge reconstruction loss: {:.4f}'.format(edge_loss.item()),
+            'feature reconstruction loss: {:.4f}'.format(feat_loss.item()),
+            )
 
         self.save_path = "./checkpoint/graphair_{}_alpha{}_beta{}_gamma{}_lambda{}".format(self.dataset, self.alpha, self.beta, self.gamma, self.lam)
         torch.save(self.state_dict(),self.save_path)
     
     # modified, we dont use the input labels now,as these are returned and specific to the link embeddings
-    def test(self, adj, features, labels, epochs, idx_train, idx_val, idx_test, sens):
+    def test(self):
+        features = self.dataset.features
+        adj = self.dataset.adj
+        labels = self.dataset.labels
+        epochs = self.config.test_epochs
+        idx_train = self.dataset.idx_train
+        idx_val = self.dataset.idx_val
+        idx_test = self.dataset.idx_test
+        sens = self.dataset.sens
+        
         features = features.cuda() if torch.cuda.is_available() else features
         h, labels, groups_mixed, groups_sub = self.forward(adj, features, sens)
 
@@ -467,13 +494,11 @@ class graphair(nn.Module):
         for i in range(5):
             torch.manual_seed(i *10)
             np.random.seed(i *10)
-            
-            
-            
+
             # train classifier
             self.classifier.reset_parameters()
                 
-            best_acc =  0.0
+            best_acc = best_roc = best_dp_mixed = best_eo_mixed = best_dp_sub = best_eo_sub = 0.0
             best_test_acc = best_test_roc = best_test_dp_mixed = best_test_eo_mixed = best_test_dp_sub = best_test_eo_sub = 0.0
                        
             for epoch in range(epochs):
@@ -489,12 +514,10 @@ class graphair(nn.Module):
                 self.classifier.eval()
                 output = self.classifier(h)
                 
-                
                 acc_val = accuracy(output[idx_val], labels[idx_val])
                 acc_test = accuracy(output[idx_test], labels[idx_test])
                 roc_test = auc(output[idx_test], labels[idx_test])
                 
-
                 # # Compute and print fairness metrics
                 parity_val_mixed, equality_val_mixed = fair_metric(output, idx_val, labels, groups_mixed)
                 parity_test_mixed, equality_test_mixed = fair_metric(output, idx_test, labels, groups_mixed)
@@ -516,6 +539,20 @@ class graphair(nn.Module):
                                 "eo_test_sub": equality_test_sub,
                             }
                         }
+                    )
+
+                print(
+                        "Epoch [{}] Test set results:".format(epoch),
+                        "acc_test= {:.4f}".format(acc_test.item()),
+                        "acc_val: {:.4f}".format(acc_val.item()),
+                        "dp_val: {:.4f}".format(parity_val_mixed),
+                        "dp_test: {:.4f}".format(parity_test_mixed),
+                        "eo_val: {:.4f}".format(equality_val_mixed),
+                        "eo_test: {:.4f}".format(equality_test_mixed),
+                        "dp_val: {:.4f}".format(parity_val_sub),
+                        "dp_test: {:.4f}".format(parity_test_sub),
+                        "eo_val: {:.4f}".format(equality_val_sub),
+                        "eo_test: {:.4f}".format(equality_test_sub),
                     )
 
                 if acc_val > best_acc:

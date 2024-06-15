@@ -17,7 +17,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score
 from .utils import preprocess_graph, project, find_link
 from .optimizer import loss_function
 from .gae import GCNModelVAE
-from models.fairgraph.method.FairDrop.utils import prediction_fairness
+from models.fairgraph.method.fairdrop.utils import prediction_fairness
 
 import wandb
 
@@ -137,12 +137,13 @@ class fairadj:
     def fit(self):
         acc_auc = []
         fairness = []
-        for idx in range(1):
+        runs = 5
+        for idx in range(runs):
             # reset memory
             torch.cuda.empty_cache()
             gc.collect()
             self.reset_attributes()
-            print(f"Running on seed  {idx + 1} out of 5")
+            print(f"Running on seed  {idx + 1} out of {runs}")
             
             # set seed
             seed = 10 * idx
